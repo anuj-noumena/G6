@@ -2,6 +2,7 @@ import 'package:event_bus/event_bus.dart';
 import 'package:flutter/widgets.dart';
 import 'package:g6_flutter/src/runtime/controllers/data_controller.dart';
 import 'package:g6_flutter/src/runtime/controllers/element_controller.dart';
+import 'package:g6_flutter/src/runtime/controllers/layout_controller.dart';
 import 'package:g6_flutter/src/runtime/controllers/viewport_controller.dart';
 import 'package:g6_flutter/src/types/behavior.dart';
 import 'package:g6_flutter/src/types/combo.dart';
@@ -40,9 +41,15 @@ class Graph {
     _dataController = DataController(this);
     _elementController = ElementController(this);
     _viewportController = ViewportController(this);
+    _layoutController = LayoutController(this);
 
     if (data != null) {
       setData(data);
+    }
+
+    // Apply initial layout if configured
+    if (_config.layout != null) {
+      Future.microtask(() => layout(_config.layout!));
     }
   }
 
@@ -52,6 +59,7 @@ class Graph {
   late final DataController _dataController;
   late final ElementController _elementController;
   late final ViewportController _viewportController;
+  late final LayoutController _layoutController;
 
   bool _rendered = false;
   bool _destroyed = false;
@@ -73,6 +81,9 @@ class Graph {
 
   /// Get viewport controller
   ViewportController get viewportController => _viewportController;
+
+  /// Get layout controller
+  LayoutController get layoutController => _layoutController;
 
   // ==================== Data Methods ====================
 
@@ -182,6 +193,20 @@ class Graph {
   /// Emit an event
   void _emit(String eventType, [GraphEvent? event]) {
     _eventBus.fire(event ?? GraphEvent(type: eventType));
+  }
+
+  // ==================== Layout Methods ====================
+
+  /// Execute layout algorithm
+  Future<void> layout(LayoutConfig config) async {
+    _emit(GraphEventType.beforeLayout);
+    await _layoutController.layout(config);
+    _emit(GraphEventType.afterLayout);
+  }
+
+  /// Stop current layout
+  void stopLayout() {
+    _layoutController.stop();
   }
 
   // ==================== Viewport Methods ====================
